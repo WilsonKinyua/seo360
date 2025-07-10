@@ -89,6 +89,11 @@ npm install @radix-ui/react-tabs
 npm install @radix-ui/react-select
 npm install @radix-ui/react-progress
 
+# Authentication & OAuth
+npm install next-auth
+npm install @auth/core
+npm install @next-auth/prisma-adapter  # for later backend integration
+
 # Charts & Data Visualization
 npm install recharts
 npm install @tremor/react
@@ -97,6 +102,10 @@ npm install @tremor/react
 npm install react-hook-form
 npm install @hookform/resolvers
 npm install zod
+
+# Payments & Subscriptions
+npm install @stripe/stripe-js
+npm install @stripe/react-stripe-js
 
 # Utilities
 npm install date-fns
@@ -125,7 +134,33 @@ interface MockUser {
   name: string;
   email: string;
   avatar: string;
-  subscription: 'free' | 'pro' | 'agency' | 'enterprise';
+  googleId?: string;
+  authProvider: 'google' | 'email';
+  subscription: {
+    planId: string;
+    planName: string;
+    status: 'active' | 'trialing' | 'past_due' | 'canceled';
+    currentPeriodEnd: Date;
+    trialEnd?: Date;
+  };
+  createdAt: Date;
+}
+
+interface MockSubscriptionPlan {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  interval: 'month' | 'year';
+  features: string[];
+  limits: {
+    projects: number;
+    auditsPerMonth: number;
+    keywordsTracked: number;
+    reportsPerMonth: number;
+  };
+  isPopular?: boolean;
+  isCustom?: boolean; // For enterprise plans
 }
 
 interface MockProject {
@@ -136,6 +171,7 @@ interface MockProject {
   score: number;
   issues: number;
   keywords: number;
+  userId: string;
 }
 
 interface MockAuditData {
@@ -152,11 +188,45 @@ interface MockAuditData {
 
 // Mock Services
 class MockDataService {
-  generateProjects(count: number): MockProject[]
+  generateUser(withGoogleAuth: boolean = true): MockUser
+  generateSubscriptionPlans(): MockSubscriptionPlan[]
+  generateProjects(userId: string, count: number): MockProject[]
   generateAuditData(projectId: string): MockAuditData
   generateKeywordData(projectId: string): MockKeyword[]
   generateCompetitorData(projectId: string): MockCompetitor[]
 }
+
+// Mock Subscription Plans (configurable from admin)
+const MOCK_SUBSCRIPTION_PLANS: MockSubscriptionPlan[] = [
+  {
+    id: 'free',
+    name: 'Free',
+    description: 'Perfect for trying out SEO360',
+    price: 0,
+    interval: 'month',
+    features: ['5 page audits', 'Basic SEO recommendations', 'Email support'],
+    limits: { projects: 1, auditsPerMonth: 5, keywordsTracked: 10, reportsPerMonth: 1 }
+  },
+  {
+    id: 'pro',
+    name: 'Professional',
+    description: 'For growing businesses and SEO professionals',
+    price: 49,
+    interval: 'month',
+    features: ['Unlimited audits', 'AI recommendations', 'Priority support', 'White-label reports'],
+    limits: { projects: 10, auditsPerMonth: -1, keywordsTracked: 500, reportsPerMonth: 50 },
+    isPopular: true
+  },
+  {
+    id: 'agency',
+    name: 'Agency',
+    description: 'For agencies managing multiple clients',
+    price: 149,
+    interval: 'month',
+    features: ['Multi-client management', 'Custom branding', 'API access', 'Team collaboration'],
+    limits: { projects: 50, auditsPerMonth: -1, keywordsTracked: 2000, reportsPerMonth: 200 }
+  }
+];
 ```
 
 #### 1.4 Core Pages Implementation (with Dummy Data)
@@ -169,11 +239,19 @@ class MockDataService {
 - [ ] **Marketing Pages**: About, contact, features detail, pricing detail
 
 **Week 3-4: Authentication & User Management**
-- [ ] **Auth Pages**: Login, register, forgot password, email verification (UI only)
-- [ ] **User Onboarding**: Multi-step setup wizard, welcome flow
+- [ ] **Google OAuth Authentication**: 
+  - Sign in/Sign up with Google button integration
+  - OAuth flow handling and user profile management
+  - Fallback email/password authentication option
+  - Account linking for existing users
+- [ ] **User Onboarding**: Multi-step setup wizard, welcome flow with Google profile data
 - [ ] **Account Settings**: Profile management, billing preferences, notification settings
-- [ ] **Subscription Management**: Plan selection, upgrade/downgrade flows
-- [ ] **User Avatar & Preferences**: Theme selection, dashboard customization
+- [ ] **Flexible Subscription Management**: 
+  - Dynamic plan selection interface that reads from backend configuration
+  - Upgrade/downgrade flows with proration handling
+  - Admin-configurable subscription plans and pricing
+  - Trial period management and conversion flows
+- [ ] **User Avatar & Preferences**: Theme selection, dashboard customization using Google profile data
 
 **Week 5-6: Project & Website Management**
 - [ ] **Projects Dashboard**: Overview with statistics, recent activity
@@ -231,6 +309,11 @@ class MockDataService {
   - Lead generation widgets
   - Client onboarding workflows
   - White-label portal customization
+- [ ] **Admin Panel** (for subscription management):
+  - Subscription plans configuration interface
+  - Pricing and features management
+  - Usage analytics and billing overview
+  - User management and support tools
 
 #### 1.5 App Structure
 ```
@@ -264,8 +347,16 @@ app/
 │   │   └── [id]/page.tsx        # Report viewer
 │   └── settings/
 │       ├── page.tsx             # Account settings
-│       ├── billing/page.tsx     # Billing & subscription
+│       ├── billing/page.tsx     # Billing & subscription (dynamic plans)
 │       └── white-label/page.tsx # White-label settings
+├── (admin)/                     # Admin-only routes (role-based access)
+│   ├── layout.tsx               # Admin layout
+│   ├── page.tsx                 # Admin dashboard
+│   ├── plans/
+│   │   ├── page.tsx             # Subscription plans management
+│   │   └── [id]/page.tsx        # Edit specific plan
+│   ├── users/page.tsx           # User management
+│   └── analytics/page.tsx       # Usage analytics
 ├── globals.css                  # Global styles
 └── components/                  # Shared components
     ├── ui/                      # Base UI components
@@ -304,6 +395,16 @@ pip install passlib[bcrypt]    # Password hashing
 pip install python-multipart  # File uploads
 pip install pydantic[email]    # Email validation
 
+# Authentication & OAuth
+pip install authlib           # OAuth client library
+pip install google-auth       # Google OAuth handling
+pip install google-auth-oauthlib
+pip install google-auth-httplib2
+
+# Payments & Subscriptions
+pip install stripe            # Stripe payment processing
+pip install python-dotenv     # Environment variables
+
 # Development tools
 pip install pytest
 pip install httpx             # Testing client
@@ -326,13 +427,50 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True)
     name = Column(String)
-    password_hash = Column(String)
+    password_hash = Column(String, nullable=True)  # Nullable for OAuth users
+    google_id = Column(String, unique=True, nullable=True)
+    avatar_url = Column(String, nullable=True)
+    auth_provider = Column(String, default="email")  # 'google' or 'email'
     role = Column(String, default="user")
-    subscription_tier = Column(String, default="free")
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
     
+    # Relationships
     projects = relationship("Project", back_populates="owner")
+    subscription = relationship("UserSubscription", back_populates="user", uselist=False)
+
+class SubscriptionPlan(Base):
+    __tablename__ = "subscription_plans"
+    id = Column(String, primary_key=True)  # e.g., 'free', 'pro', 'agency'
+    name = Column(String)
+    description = Column(Text)
+    price = Column(Integer)  # Price in cents
+    interval = Column(String)  # 'month' or 'year'
+    features = Column(JSON)  # List of features
+    limits = Column(JSON)    # Usage limits
+    stripe_price_id = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+    is_popular = Column(Boolean, default=False)
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
+
+class UserSubscription(Base):
+    __tablename__ = "user_subscriptions"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    plan_id = Column(String, ForeignKey("subscription_plans.id"))
+    stripe_customer_id = Column(String, nullable=True)
+    stripe_subscription_id = Column(String, nullable=True)
+    status = Column(String)  # 'active', 'trialing', 'past_due', 'canceled'
+    current_period_start = Column(DateTime)
+    current_period_end = Column(DateTime)
+    trial_end = Column(DateTime, nullable=True)
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
+    
+    # Relationships
+    user = relationship("User", back_populates="subscription")
+    plan = relationship("SubscriptionPlan")
 
 class Project(Base):
     __tablename__ = "projects"
@@ -360,29 +498,103 @@ class Website(Base):
 #### 2.3 FastAPI Authentication System
 ```python
 # auth.py
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from jose import JWTError, jwt
+from authlib.integrations.fastapi_oauth2 import OAuth2
+from google.auth.transport import requests
+from google.oauth2 import id_token
+import os
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+# Google OAuth Configuration
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+
 @router.post("/register")
 async def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    # User registration logic
+    # Traditional email/password registration
     pass
+
+@router.post("/google-auth")
+async def google_auth(google_token: GoogleTokenRequest, db: Session = Depends(get_db)):
+    """Authenticate user with Google OAuth token"""
+    try:
+        # Verify Google token
+        id_info = id_token.verify_oauth2_token(
+            google_token.token, 
+            requests.Request(), 
+            GOOGLE_CLIENT_ID
+        )
+        
+        # Extract user info from Google
+        google_id = id_info['sub']
+        email = id_info['email']
+        name = id_info['name']
+        avatar_url = id_info.get('picture')
+        
+        # Find or create user
+        user = await get_or_create_google_user(db, google_id, email, name, avatar_url)
+        
+        # Generate JWT token
+        access_token = create_access_token(data={"sub": user.email})
+        return {"access_token": access_token, "token_type": "bearer", "user": user}
+        
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid Google token")
 
 @router.post("/token")
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    # JWT token generation
+    # Traditional JWT token generation for email/password
     pass
 
 @router.get("/me")
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    # Get current user from token
+    # Get current user from token (works for both Google and email auth)
     pass
+
+async def get_or_create_google_user(db: Session, google_id: str, email: str, name: str, avatar_url: str):
+    """Find existing user or create new one from Google OAuth"""
+    # Check if user exists by Google ID
+    user = db.query(User).filter(User.google_id == google_id).first()
+    if user:
+        return user
+    
+    # Check if user exists by email (account linking)
+    user = db.query(User).filter(User.email == email).first()
+    if user:
+        # Link Google account to existing user
+        user.google_id = google_id
+        user.avatar_url = avatar_url
+        user.auth_provider = "google"
+        db.commit()
+        return user
+    
+    # Create new user
+    user = User(
+        email=email,
+        name=name,
+        google_id=google_id,
+        avatar_url=avatar_url,
+        auth_provider="google"
+    )
+    db.add(user)
+    
+    # Create default free subscription
+    free_plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == "free").first()
+    subscription = UserSubscription(
+        user=user,
+        plan=free_plan,
+        status="active"
+    )
+    db.add(subscription)
+    db.commit()
+    
+    return user
 ```
 
 #### 2.4 Core API Endpoints
@@ -404,13 +616,25 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
+app.include_router(subscriptions.router, prefix="/api/subscriptions", tags=["subscriptions"])
 app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
 app.include_router(websites.router, prefix="/api/websites", tags=["websites"])
 
 # API Endpoints Structure:
+# Authentication
 # POST   /api/auth/register
+# POST   /api/auth/google-auth
 # POST   /api/auth/token
 # GET    /api/auth/me
+
+# Subscription Management
+# GET    /api/subscriptions/plans          # Get all available plans (admin configurable)
+# POST   /api/subscriptions/create         # Create/upgrade subscription with Stripe
+# POST   /api/subscriptions/cancel         # Cancel subscription
+# GET    /api/subscriptions/usage          # Get current usage vs limits
+# POST   /api/subscriptions/portal         # Generate Stripe customer portal link
+
+# Projects & Websites
 # GET    /api/projects
 # POST   /api/projects
 # GET    /api/projects/{id}
@@ -421,6 +645,12 @@ app.include_router(websites.router, prefix="/api/websites", tags=["websites"])
 # GET    /api/websites/{id}
 # PUT    /api/websites/{id}
 # DELETE /api/websites/{id}
+
+# Admin (for configuring subscription plans)
+# GET    /api/admin/plans                  # Get all plans for admin
+# POST   /api/admin/plans                  # Create new plan
+# PUT    /api/admin/plans/{id}             # Update plan
+# DELETE /api/admin/plans/{id}             # Deactivate plan
 ```
 
 #### 2.5 Frontend-Backend Integration
@@ -940,6 +1170,14 @@ Monitoring: Vercel Analytics + Sentry
 - **AI/ML Integration**: Best OpenAI SDK and machine learning libraries
 - **Performance**: Excellent for data processing and concurrent operations
 - **Development Speed**: Auto-documentation, type safety, modern async patterns
+
+### **✅ Flexible Authentication & Subscriptions**
+- **Google OAuth Integration**: Seamless sign-in with Google accounts + fallback email/password
+- **Account Linking**: Users can link Google accounts to existing email accounts
+- **Admin-Configurable Plans**: Create, modify, and manage subscription plans without code changes
+- **Dynamic Pricing**: Update pricing, features, and limits through admin interface
+- **Stripe Integration**: Professional payment processing with customer portal
+- **Usage Tracking**: Real-time monitoring of user limits and usage
 
 ### **✅ Sequential Phase Execution**
 - **One phase at a time**: Complete each phase 100% before moving to next
