@@ -33,13 +33,13 @@ export const MAIN_NAVIGATION: NavigationItem[] = [
     icon: 'Search',
     description: 'SEO audits and analysis',
     children: [
-      { title: 'Overview', href: '/audit/overview', icon: 'Eye' },
-      { title: 'Technical', href: '/audit/technical', icon: 'Settings' },
-      { title: 'Content', href: '/audit/content', icon: 'FileText' },
-      { title: 'Performance', href: '/audit/performance', icon: 'Zap' },
+      { title: 'Overview', href: '/audit/proj_1/overview', icon: 'Eye' },
+      { title: 'Technical', href: '/audit/proj_1/technical', icon: 'Settings' },
+      { title: 'Content', href: '/audit/proj_1/content', icon: 'FileText' },
+      { title: 'Performance', href: '/audit/proj_1/performance', icon: 'Zap' },
       {
         title: 'Accessibility',
-        href: '/audit/accessibility',
+        href: '/audit/proj_1/accessibility',
         icon: 'UserCheck',
       },
     ],
@@ -50,9 +50,9 @@ export const MAIN_NAVIGATION: NavigationItem[] = [
     icon: 'Hash',
     description: 'Keyword research and tracking',
     children: [
-      { title: 'Research', href: '/keywords/research', icon: 'Search' },
-      { title: 'Tracking', href: '/keywords/tracking', icon: 'TrendingUp' },
-      { title: 'Analysis', href: '/keywords/analysis', icon: 'BarChart3' },
+      { title: 'Research', href: '/keywords/proj_1/research', icon: 'Search' },
+      { title: 'Tracking', href: '/keywords/proj_1/tracking', icon: 'TrendingUp' },
+      { title: 'Analysis', href: '/keywords/proj_1/analysis', icon: 'BarChart3' },
     ],
   },
   {

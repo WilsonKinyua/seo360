@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { getSEOScoreColor, getSEOScoreLabel } from "@/lib/utils/index"
+import { getSEOScoreColor, getSEOScoreLabel } from "@/lib/utils"
 
 interface SEOScoreRingProps {
   score: number
